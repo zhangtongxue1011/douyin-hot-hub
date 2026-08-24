@@ -4,6 +4,14 @@ on:
   schedule:
     # 每小时整点执行
     - cron: "0 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: douyin-hot-hub-update
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -14,13 +22,16 @@ jobs:
     steps:
       # 克隆仓库
       - name: Clone repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       # 配置python环境
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.8"
+          python-version: "3.11"
+          cache: pip
 
       # 安装python依赖
       - name: Install dependencies
@@ -30,10 +41,8 @@ jobs:
       # 配置git
       - name: Config git
         run: |
-          git config --local user.email "ations@github.com"
-          git config --local user.name "github"
-          git remote set-url origin "https://${{ github.actor }}:${{ github.token }}@github.com/${{ github.repository }}"
-          git pull --rebase
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
       # 运行
       - name: Run python
         run: python main.py
@@ -42,5 +51,10 @@ jobs:
       - name: Update repo
         run: |
           git add .
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
           git commit -m "auto update"
-          git push -u origin main
+          git pull --rebase origin main
+          git push origin HEAD:main
